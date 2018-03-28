@@ -1,4 +1,5 @@
 resolver: lts-11.2
 
 packages:
+  - rowdy
   - rowdy-yesod

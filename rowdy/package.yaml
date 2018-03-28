@@ -1,4 +1,4 @@
-name:                rowdy-yesod
+name:                rowdy
 version:             0.0.1.0
 github:              parsonsmatt/rowdy
 license:             BSD3
@@ -16,8 +16,8 @@ description:         Please see the README on Github at <https://github.com/pars
 
 dependencies:
 - base >= 4.7 && < 5
-- rowdy
-- yesod-core 
+- mtl
+- dlist
 
 library:
   source-dirs: src
@@ -31,5 +31,5 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - rowdy-yesod
+    - rowdy
     - hspec

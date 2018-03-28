@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c677000aef624544b4e862512c12aee03d9299ac0c9bd63245a3c597f302ca8f
+-- hash: 7bd6add96509304055ecd36207cb72373a833fd4b4be1207f113f80bedeb43a1
 
 name:           rowdy-yesod
 version:        0.0.1.0
@@ -32,11 +32,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , dlist
-    , mtl
+    , rowdy
     , yesod-core
   exposed-modules:
-      Rowdy
       Rowdy.Yesod
   other-modules:
       Paths_rowdy_yesod
@@ -50,10 +48,9 @@ test-suite specs
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , dlist
     , hspec
-    , mtl
     , rowdy
+    , rowdy-yesod
     , yesod-core
   other-modules:
       Paths_rowdy_yesod
