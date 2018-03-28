@@ -223,3 +223,4 @@ language_extensions:
 - TemplateHaskell
 - QuasiQuotes
 - DerivingStrategies
+- MultiParamTypeClasses

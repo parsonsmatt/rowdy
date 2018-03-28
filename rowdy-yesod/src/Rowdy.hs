@@ -1,28 +1,25 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE DeriveFunctor        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Rowdy where
 
-import qualified Control.Monad.State as State
-import Data.Proxy
-import Data.Char
-import Control.Monad.State hiding (get, put)
-import Control.Monad.Reader
-import Data.Typeable
-import Yesod.Routes.TH.Types
-import Data.String
-
-type DList a = [a] -> [a]
-
-snoc :: a -> DList a -> DList a
-snoc a f = (++[a]) . f
+import           Control.Monad.Reader
+import           Control.Monad.State   hiding (get, put)
+import qualified Control.Monad.State   as State
+import           Data.Char
+import           Data.DList            (DList (..))
+import qualified Data.DList            as DList
+import           Data.Proxy
+import           Data.String
+import           Data.Typeable
+import           Yesod.Routes.TH.Types
 
 read :: MonadState s m => m s
 read = State.get
@@ -33,7 +30,7 @@ write = State.put
 type RouteDsl a = ReaderT (DList PathPiece) (State (Routes a))
 
 runRouteDsl :: RouteDsl r a -> [Route r]
-runRouteDsl = ($ []) . flip execState id . flip runReaderT id
+runRouteDsl = DList.toList . flip execState mempty . flip runReaderT mempty
 
 toYesod :: RouteDsl String () -> [ResourceTree String]
 toYesod = foldr go [] . runRouteDsl
@@ -52,7 +49,7 @@ toYesod = foldr go [] . runRouteDsl
                         verb' = renderVerb verb
                      in if verb' `elem` methods
                             then ResourceLeaf res : rest -- a duplicate!
-                            else ResourceLeaf (res') : rest
+                            else ResourceLeaf res' : rest
                 MkSubsite name typ func ->
                     error "subsite overlap"
         | otherwise =
@@ -98,13 +95,13 @@ toYesod = foldr go [] . runRouteDsl
 
 listEq :: (a -> a -> Bool) -> [a] -> [a] -> Bool
 listEq f (x:xs) (y:ys) = f x y && listEq f xs ys
-listEq f [] [] = True
-listEq _ _ _ = False
+listEq f [] []         = True
+listEq _ _ _           = False
 
 eqPieceStr :: Piece String -> Piece String -> Bool
-eqPieceStr (Static s2) (Static s1) = s1 == s2
+eqPieceStr (Static s2) (Static s1)   = s1 == s2
 eqPieceStr (Dynamic d0) (Dynamic d1) = d0 == d1
-eqPieceStr _ _ = False
+eqPieceStr _ _                       = False
 
 instance IsString PathPiece where
     fromString = Literal
@@ -125,7 +122,7 @@ data PathPiece
     deriving Show
 
 (//) :: PathPiece -> RouteDsl r () -> RouteDsl r ()
-pp // x = local (snoc pp) x
+pp // x = local (`DList.snoc` pp) x
 
 infixr 5 //
 
@@ -150,14 +147,14 @@ delete = doVerb  Delete
 subsite :: String -> String -> String -> RouteDsl String ()
 subsite name thing func = do
     let x = MkSubsite name thing func
-    pcs <- ask
-    modify $ snoc (Leaf (pcs []) x)
+    pcs <- asks DList.toList
+    modify (`DList.snoc` Leaf pcs x)
 
 doVerb :: Verb -> r -> RouteDsl r ()
 doVerb verb r = do
     let x = Endpoint verb r
-    pcs <- ask
-    modify $ snoc (Leaf (pcs []) x)
+    pcs <- asks DList.toList
+    modify (`DList.snoc` Leaf pcs x)
 
 capture :: forall typ. Typeable typ => PathPiece
 capture = Capture (Type (Proxy @typ))
