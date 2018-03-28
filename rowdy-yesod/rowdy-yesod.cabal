@@ -2,10 +2,10 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: af3c441e57edb567252a2e9242241cb4bb0b75190c5df2bbc0e7b04eeab4dd32
+-- hash: d3e4182f81d9e3fc8c24187c83c7266566ad689fb4ae0daf9b09aa75f4bde55a
 
-name:           rowdy
-version:        0.1.0.0
+name:           rowdy-yesod
+version:        0.0.1.0
 synopsis:       An EDSL for web application routes.
 description:    Please see the README on Github at <https://github.com/parsonsmatt/rowdy#readme>
 category:       Web
@@ -35,10 +35,9 @@ library
     , mtl
     , yesod-core
   exposed-modules:
-      Lib
       Rowdy
   other-modules:
-      Paths_rowdy
+      Paths_rowdy_yesod
   default-language: Haskell2010
 
 test-suite specs
@@ -54,5 +53,5 @@ test-suite specs
     , rowdy
     , yesod-core
   other-modules:
-      Paths_rowdy
+      Paths_rowdy_yesod
   default-language: Haskell2010
