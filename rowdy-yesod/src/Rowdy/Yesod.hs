@@ -1,4 +1,7 @@
-module Rowdy.Yesod where
+module Rowdy.Yesod
+    ( module Rowdy.Yesod
+    , get, put, post, capture, (//)
+    ) where
 
 import           Data.Typeable
 import           Yesod.Routes.TH.Types

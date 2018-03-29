@@ -1,0 +1,33 @@
+name:                examples
+version:             0.1.0.0
+github:              "parsonsmatt/examples"
+license:             BSD3
+author:              "Matt Parsons"
+maintainer:          "parsonsmatt@gmail.com"
+copyright:           "Matt Parsons"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/parsonsmatt/examples#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- rowdy
+- rowdy-servant
+- rowdy-yesod
+- servant-server
+- text
+- warp
+- yesod-core
+
+library:
+  source-dirs: src
