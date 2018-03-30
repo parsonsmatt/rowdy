@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveFunctor        #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE GADTs                #-}
@@ -19,6 +20,7 @@ import qualified Data.DList            as DList
 import           Data.Proxy
 import           Data.String
 import           Data.Typeable
+import Data.Tree
 
 read :: MonadState s m => m s
 read = State.get
@@ -26,90 +28,41 @@ read = State.get
 write :: MonadState s m => s -> m ()
 write = State.put
 
-type RouteDsl a = ReaderT (DList PathPiece) (State (Routes a))
+type DForest a = DList (Tree a)
 
-runRouteDsl :: RouteDsl r a -> [Route r]
-runRouteDsl = DList.toList . flip execState mempty . flip runReaderT mempty
+newtype RouteDsl capture endpoint a = RouteDsl
+    { unRouteDsl :: ReaderT (DList capture) (State (DForest endpoint)) a
+    } deriving
+    ( Functor, Applicative, Monad
+    , MonadReader (DList capture)
+    , MonadState (DForest endpoint)
+    )
 
-instance IsString PathPiece where
-    fromString = Literal
+runRouteDsl :: RouteDsl c e a -> Forest e
+runRouteDsl =
+    DList.toList . flip execState mempty . flip runReaderT mempty . unRouteDsl
 
-type Routes a = DList (Route a)
-
-data Route a = Leaf [PathPiece] (Endpoint a)
-    deriving Show
-
-data Endpoint a
-    = Endpoint Verb a
-    | MkSubsite a a a
-    deriving (Show, Functor)
-
-data PathPiece
-    = Literal String
-    | Capture Type
-    deriving Show
-
-(//) :: PathPiece -> RouteDsl r () -> RouteDsl r ()
+(//)
+    :: capture
+    -> RouteDsl capture endpoint ()
+    -> RouteDsl capture endpoint ()
 pp // x = local (`DList.snoc` pp) x
+
+terminal :: ([capture] -> endpoint) -> RouteDsl capture endpoint ()
+terminal mkEndpoint = do
+    captures <- asks DList.toList
+    modify (`DList.snoc` Node (mkEndpoint captures) [])
 
 infixr 5 //
 
-data Type where
-    Type :: Typeable t => Proxy t -> Type
-
-instance Show Type where
-    show (Type prxy) = show (typeRep prxy)
-
-data Verb = Get | Put | Post | Delete
-    deriving Show
-
-renderVerb :: Verb -> String
-renderVerb = map toUpper . show
-
-get, put, post, delete :: r -> RouteDsl r ()
-get = doVerb  Get
-put = doVerb  Put
-post = doVerb  Post
-delete = doVerb  Delete
-
-subsite :: String -> String -> String -> RouteDsl String ()
-subsite name thing func = do
-    let x = MkSubsite name thing func
-    pcs <- asks DList.toList
-    modify (`DList.snoc` Leaf pcs x)
-
-doVerb :: Verb -> r -> RouteDsl r ()
-doVerb verb r = do
-    let x = Endpoint verb r
-    pcs <- asks DList.toList
-    modify (`DList.snoc` Leaf pcs x)
-
-capture :: forall typ. Typeable typ => PathPiece
-capture = Capture (Type (Proxy @typ))
-
-type UserId = Int
-type PostId = Int
-type CommentId = Int
-
-exampleDsl :: RouteDsl String ()
-exampleDsl = do
-    "users" // do
-        get "IndexUserR"
-        post "PostUserR"
-        capture @UserId // do
-            get "GetUserR"
-            put "UpdateUserR"
-            delete "DeleteUserR"
-    "posts" // do
-        get "IndexPostR"
-        post "PostPostR"
-        capture @PostId // do
-            get "GetPostR"
-            put "PutPostR"
-            delete "DeletePostR"
-            "comments" // do
-                get "IndexCommentR"
-                post "PostCommentR"
-                capture @CommentId // do
-                    get "GetCommentR"
-                    put "PutCommentR"
+-- data Type where
+--     Type :: Typeable t => Proxy t -> Type
+--
+-- instance Show Type where
+--     show (Type prxy) = show (typeRep prxy)
+--
+-- data Verb = Get | Put | Post | Delete
+--     deriving Show
+--
+-- renderVerb :: Verb -> String
+-- renderVerb = map toUpper . show

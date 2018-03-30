@@ -1,23 +1,33 @@
-{-# LANGUAGE LambdaCase      #-}
-{-# LANGUAGE QuasiQuotes     #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DeriveFunctor       #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE QuasiQuotes         #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module Rowdy.Servant
     ( module Rowdy.Servant
-    , get, put, post, capture, (//), Rowdy.Type(..)
+    , get, put, post, capture, (//), SomeType(..)
     ) where
 
+import           Data.Foldable            (toList)
+import           Data.String
 import           Data.Typeable
 import           Language.Haskell.TH      as TH
 import           Servant.API              as Servant
-import           Servant.API.Capture              as Servant
+import           Servant.API.Capture      as Servant
 import           Servant.API.ContentTypes as Servant
 
 import           Rowdy
 
-toServant :: String -> RouteDsl Rowdy.Type () -> Q [Dec]
-toServant apiName = renderRoutes . runRouteDsl
+type Dsl = RouteDsl PathPiece (Route SomeType)
+
+toServant :: String -> Dsl () -> Q [Dec]
+toServant apiName = renderRoutes . concatMap toList . toList . runRouteDsl
   where
     renderRoutes =
         fmap pure
@@ -26,17 +36,12 @@ toServant apiName = renderRoutes . runRouteDsl
             . foldr1 (\x acc -> ConT ''(:<|>) `AppT` x `AppT` acc)
             . map routeToType
 
-    routeToType (Leaf pcs (Endpoint verb (Rowdy.Type prxy))) =
-        let pcs' =
-                map pieceToType pcs
-            end =
-                verbToVerb verb
-                    `AppT` json
-                    `AppT` (ConT . mkName . show . typeRep) prxy
-         in
-            foldr (\x acc -> ConT ''(:>) `AppT` x `AppT` acc) end pcs'
-    routeToType _ =
-        error "mkSubsite is only for yesod"
+    routeToType (Route pcs (MkResource verb (SomeType prxy))) =
+        let pcs' = map pieceToType pcs
+            end = verbToVerb verb
+                `AppT` json
+                `AppT` (ConT . mkName . show . typeRep) prxy
+         in foldr (\x acc -> ConT ''(:>) `AppT` x `AppT` acc) end pcs'
 
     json =
         PromotedConsT
@@ -51,7 +56,43 @@ toServant apiName = renderRoutes . runRouteDsl
 
     pieceToType (Literal str) =
         LitT (StrTyLit str)
-    pieceToType (Capture (Type prxy)) =
+    pieceToType (Capture (SomeType prxy)) =
         ConT ''Capture
             `AppT` (LitT . StrTyLit . show $ typeRep prxy)
             `AppT` (ConT . mkName . show $ typeRep prxy)
+
+data Route a = Route [PathPiece] (Endpoint a)
+
+data Endpoint a
+    = MkResource RVerb a
+    deriving (Show, Functor)
+
+data RVerb = Get | Put | Post | Delete
+    deriving (Eq, Show)
+
+data PathPiece
+    = Literal String
+    | Capture SomeType
+    deriving Show
+
+instance IsString PathPiece where
+    fromString = Literal
+
+data SomeType where
+    SomeType :: Typeable t => Proxy t -> SomeType
+
+instance Show SomeType where
+    show (SomeType prxy) = show (typeRep prxy)
+
+get, put, post, delete :: SomeType -> Dsl ()
+get = doVerb  Get
+put = doVerb  Put
+post = doVerb Post
+delete = doVerb Delete
+
+doVerb :: RVerb -> SomeType -> Dsl ()
+doVerb verb r = terminal (\pcs -> Route pcs (MkResource verb r))
+
+capture :: forall typ. Typeable typ => PathPiece
+capture = Capture (SomeType (Proxy @typ))
+
