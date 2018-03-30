@@ -16,7 +16,7 @@ import           Servant
 import           Rowdy.Servant
 
 toServant "MyApi" $ do
-    let unit = Type (Proxy @())
+    let unit = SomeType (Proxy @())
     "users" // do
         get unit
         -- need to add reqBody support

@@ -18,6 +18,7 @@ dependencies:
 - base >= 4.7 && < 5
 - mtl
 - dlist
+- containers
 
 library:
   source-dirs: src

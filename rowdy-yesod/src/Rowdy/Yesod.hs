@@ -1,23 +1,35 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Rowdy.Yesod
     ( module Rowdy.Yesod
-    , get, put, post, capture, (//)
+    , (//)
     ) where
 
 import           Data.Typeable
 import           Yesod.Routes.TH.Types
+import Data.String
+import Data.Foldable
+import Data.Char
 
 import           Rowdy
 
-toYesod :: RouteDsl String () -> [ResourceTree String]
-toYesod = foldr go [] . runRouteDsl
+type Dsl = RouteDsl PathPiece (Route String)
+
+toYesod :: Dsl () -> [ResourceTree String]
+toYesod = foldr go [] . concatMap toList . toList . runRouteDsl
   where
     go l [] = [convert l]
-    go l@(Leaf pieces endpoint) (ResourceLeaf res : rest)
+    go l@(Route pieces endpoint) (ResourceLeaf res : rest)
         | listEq eqPieceStr pcs (resourcePieces res)
         , Methods multi methods <- resourceDispatch res
         =
             case endpoint of
-                Endpoint verb name ->
+                MkResource verb name ->
                     let res' = res
                             { resourceDispatch =
                                 Methods multi (verb' : methods)
@@ -33,9 +45,9 @@ toYesod = foldr go [] . runRouteDsl
       where
         pcs = map convPiece pieces
 
-    convert (Leaf pcs endpoint) =
+    convert (Route pcs endpoint) =
         case endpoint of
-            Endpoint verb name ->
+            MkResource verb name ->
                 ResourceLeaf Resource
                     { resourceName =
                         name
@@ -79,4 +91,45 @@ eqPieceStr (Static s2) (Static s1)   = s1 == s2
 eqPieceStr (Dynamic d0) (Dynamic d1) = d0 == d1
 eqPieceStr _ _                       = False
 
+data Route a = Route [PathPiece] (Endpoint a)
 
+data Endpoint a
+    = MkResource Verb a
+    | MkSubsite a a a
+    deriving (Show, Functor)
+
+data PathPiece
+    = Literal String
+    | Capture Type
+    deriving Show
+
+instance IsString PathPiece where
+    fromString = Literal
+
+data Type where
+    Type :: Typeable t => Proxy t -> Type
+
+instance Show Type where
+    show (Type prxy) = show (typeRep prxy)
+
+data Verb = Get | Put | Post | Delete
+    deriving Show
+
+renderVerb :: Verb -> String
+renderVerb = map toUpper . show
+
+get, put, post, delete :: String -> Dsl ()
+get = doVerb  Get
+put = doVerb  Put
+post = doVerb  Post
+delete = doVerb  Delete
+
+subsite :: String -> String -> String -> Dsl ()
+subsite name thing func =
+    terminal (\pcs -> Route pcs (MkSubsite name thing func))
+
+doVerb :: Verb -> String -> Dsl ()
+doVerb verb r = terminal (\pcs -> Route pcs (MkResource verb r))
+
+capture :: forall typ. Typeable typ => PathPiece
+capture = Capture (Type (Proxy @typ))
