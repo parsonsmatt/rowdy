@@ -21,6 +21,7 @@ dependencies:
 
 library:
   source-dirs: src
+  ghc-options: -Wall -Wcompat
 
 tests:
   specs:

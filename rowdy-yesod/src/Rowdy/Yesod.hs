@@ -1,5 +1,4 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE RecordWildCards     #-}
@@ -13,39 +12,34 @@ module Rowdy.Yesod
 
 import           Data.Char
 import           Data.Foldable
+import           Data.Maybe            (isJust)
 import           Data.String
-import Data.Maybe (fromMaybe)
-import Control.Applicative
 import           Data.Typeable
 import           Yesod.Routes.TH.Types
 
 import           Rowdy
 
-type Dsl = RouteDsl PathPiece Endpoint
+type Dsl = RouteDsl String PathPiece Endpoint
 
 toYesod :: Dsl () -> [ResourceTree String]
 toYesod = routeTreeToResourceTree . toList . runRouteDsl
 
-routeTreeToResourceTree :: [RouteTree PathPiece Endpoint] -> [ResourceTree String]
+routeTreeToResourceTree :: [RouteTree String PathPiece Endpoint] -> [ResourceTree String]
 routeTreeToResourceTree =
-    foldr (go ("Root") []) []
+    foldr (go []) []
     . flattenRoutes
   where
     go
-        :: String
-        -> [Piece String]
-        -> RouteTree PathPiece Endpoint
+        :: [Piece String]
+        -> RouteTree String PathPiece Endpoint
         -> [ResourceTree String]
         -> [ResourceTree String]
-    go mstr pcs (Nest xs) acc =
-        ResourceParent mstr True (reverse pcs) (foldr (go "really" []) [] xs)
+    go pcs (Nest str xs) acc =
+        ResourceParent str True (reverse pcs) (foldr (go []) [] xs)
             : acc
-    go mstr pcs (PathComponent pp rest) acc =
-        let str' = case pp of
-                Literal str -> upperFirst str
-                Capture (Type prxy) -> ("Get" ++ show (typeRep prxy))
-         in go str' (convPiece pp : pcs) rest acc
-    go mstr pcs (Leaf term) (ResourceLeaf Resource {..} : acc)
+    go pcs (PathComponent pp rest) acc =
+         go (convPiece pp : pcs) rest acc
+    go pcs (Leaf term) (ResourceLeaf Resource {..} : acc)
         | listEq eqPieceStr (reverse pcs) resourcePieces
         , Methods multi methods <- resourceDispatch
         =
@@ -57,7 +51,7 @@ routeTreeToResourceTree =
                         , resourcePieces = reverse pcs
                         , resourceDispatch =
                             Methods
-                                { methodsMulti = Nothing
+                                { methodsMulti = multi
                                 , methodsMethods = renderVerb v : methods
                                 }
                         , resourceAttrs =
@@ -79,7 +73,7 @@ routeTreeToResourceTree =
                         , resourceCheck =
                             True
                         }
-    go mstr pcs (Leaf term) acc =
+    go pcs (Leaf term) acc =
         flip (:) acc . ResourceLeaf $
             case term of
                 MkResource v str ->
@@ -113,13 +107,12 @@ routeTreeToResourceTree =
     flattenRoutes =
         concatMap $ \x ->
             case x of
-                Nest xs -> xs
-                _ -> [x]
+                Nest _ xs -> xs
+                _         -> [x]
 
-convPiece (Literal str) =
-    Static str
-convPiece (Capture (Type prxy)) =
-    Dynamic (show (typeRep prxy))
+convPiece :: PathPiece -> Piece String
+convPiece (Literal str)         = Static str
+convPiece (Capture (Type prxy)) = Dynamic (show (typeRep prxy))
 
 listEq :: (a -> a -> Bool) -> [a] -> [a] -> Bool
 listEq f (x:xs) (y:ys) = f x y && listEq f xs ys
@@ -151,8 +144,8 @@ instance Show Type where
     show (Type prxy) = show (typeRep prxy)
 
 instance Eq Type where
-    Type (_ :: Proxy t0) == Type (_ :: Proxy t1) = do
-        maybe False (const True) (eqT @t0 @t1)
+    Type (_ :: Proxy t0) == Type (_ :: Proxy t1) =
+        isJust (eqT @t0 @t1)
 
 data Verb = Get | Put | Post | Delete
     deriving (Eq, Show)
@@ -178,5 +171,6 @@ capture :: forall typ. Typeable typ => PathPiece
 capture =
     Capture (Type (Proxy @typ))
 
+upperFirst :: String -> String
 upperFirst (x:xs) = toUpper x : xs
-upperFirst [] = []
+upperFirst []     = []

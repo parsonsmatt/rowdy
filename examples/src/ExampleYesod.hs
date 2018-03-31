@@ -1,10 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ViewPatterns          #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module ExampleYesod where
 
@@ -17,16 +17,6 @@ import           Rowdy.Yesod
 
 -- | This is my data type. There are many like it, but this one is mine.
 data Minimal = Minimal
-
-routes = do
-    get "RootR"
-    "users" // do
-        get "UserIndexR"
-        post "UserIndexR"
-        capture @Int // do
-            get "UserR"
-            put "UserR"
-
 
 mkYesod "Minimal" $ toYesod $ do
     get "RootR"

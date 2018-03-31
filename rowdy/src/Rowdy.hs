@@ -1,60 +1,78 @@
 {-# LANGUAGE AllowAmbiguousTypes        #-}
-{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFoldable             #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeApplications           #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 
 module Rowdy where
 
-import Control.Monad.Writer
+import           Control.Monad.Writer
 import           Data.DList           (DList (..))
 import qualified Data.DList           as DList
 
-type ForestOf f capture terminal = f (RouteTree capture terminal)
-type DForest c t = ForestOf DList c t
-type Forest c t = ForestOf [] c t
+type ForestOf f n capture terminal = f (RouteTree n capture terminal)
+type DForest n c t = ForestOf DList n c t
+type Forest n c t = ForestOf [] n c t
 
-data RouteTree capture terminal
+data RouteTree nest capture terminal
     = Leaf terminal
-    | PathComponent capture (RouteTree capture terminal)
-    | Nest [RouteTree capture terminal]
+    | PathComponent capture (RouteTree nest capture terminal)
+    | Nest nest [RouteTree nest capture terminal]
     deriving (Eq, Show, Functor, Foldable)
 
-newtype RouteDsl capture terminal a = RouteDsl
-    { unRouteDsl :: Writer (DForest capture terminal) a
+newtype RouteDsl nest capture terminal a = RouteDsl
+    { unRouteDsl :: Writer (DForest nest capture terminal) a
     } deriving
     ( Functor, Applicative, Monad
-    , MonadWriter (DForest capture terminal)
+    , MonadWriter (DForest nest capture terminal)
     )
 
-runRouteDsl :: RouteDsl c e a -> Forest c e
+runRouteDsl :: RouteDsl n c e a -> Forest n c e
 runRouteDsl =
     DList.toList . execWriter . unRouteDsl
 
+pathComponent
+    :: capture
+    -> RouteDsl nest capture endpoint ()
+    -> RouteDsl nest capture endpoint ()
+pathComponent pp =
+    tell . DList.fromList . map (PathComponent pp) . runRouteDsl
+
 (//)
     :: capture
-    -> RouteDsl capture endpoint ()
-    -> RouteDsl capture endpoint ()
-pp // x =
-    case runRouteDsl x of
-        [] -> error "what is wrong with you"
-        [a] -> tell (pure (PathComponent pp a))
-        xs -> tell (pure (PathComponent pp (Nest xs)))
-
-terminal :: endpoint -> RouteDsl capture endpoint ()
-terminal = tell . pure . Leaf
+    -> RouteDsl nest capture endpoint ()
+    -> RouteDsl nest capture endpoint ()
+(//) = pathComponent
 
 infixr 5 //
 
-unnest :: RouteTree capture terminal -> [([capture], terminal)]
+nest
+    :: nest
+    -> RouteDsl nest capture endpoint ()
+    -> RouteDsl nest capture endpoint ()
+nest str = tell . pure . Nest str . runRouteDsl
+
+(/:)
+    :: nest
+    -> RouteDsl nest capture endpoint ()
+    -> RouteDsl nest capture endpoint ()
+(/:) = nest
+
+infixr 7 /:
+
+terminal :: endpoint -> RouteDsl nest capture endpoint ()
+terminal = tell . pure . Leaf
+
+unnest :: RouteTree nest capture terminal -> [([capture], terminal)]
 unnest = go mempty
   where
-    go caps (Leaf terminal) = [(DList.toList caps, terminal)]
-    go caps (PathComponent cap next) = go (DList.snoc caps cap) next
-    go caps (Nest xs) = concatMap (go caps) xs
+    go caps (Leaf term) =
+        [(DList.toList caps, term)]
+    go caps (PathComponent cap next) =
+        go (DList.snoc caps cap) next
+    go caps (Nest _ xs) =
+        concatMap (go caps) xs

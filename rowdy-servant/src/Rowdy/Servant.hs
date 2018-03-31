@@ -14,15 +14,14 @@ module Rowdy.Servant
     , (//), SomeType(..)
     ) where
 
-import           Data.Foldable            (toList)
 import           Data.String
 import           Data.Typeable
-import           Language.Haskell.TH      as TH
-import           Servant.API              as Servant
+import           Language.Haskell.TH as TH
+import           Servant.API         as Servant
 
 import           Rowdy
 
-type Dsl = RouteDsl PathPiece (Route SomeType)
+type Dsl = RouteDsl () PathPiece (Route SomeType)
 
 toServant :: String -> Dsl () -> Q [Dec]
 toServant apiName = renderRoutes . runRouteDsl
@@ -60,7 +59,7 @@ toServant apiName = renderRoutes . runRouteDsl
             `AppT` (LitT . StrTyLit . show $ typeRep prxy)
             `AppT` (ConT . mkName . show $ typeRep prxy)
 
-data Route a = Route (Endpoint a)
+newtype Route a = Route (Endpoint a)
 
 data Endpoint a
     = MkResource RVerb a
