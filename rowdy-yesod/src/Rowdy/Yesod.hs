@@ -27,7 +27,6 @@ toYesod = routeTreeToResourceTree . toList . runRouteDsl
 routeTreeToResourceTree :: [RouteTree String PathPiece Endpoint] -> [ResourceTree String]
 routeTreeToResourceTree =
     foldr (go []) []
-    . flattenRoutes
   where
     go
         :: [Piece String]
@@ -104,11 +103,6 @@ routeTreeToResourceTree =
                         , resourceCheck =
                             True
                         }
-    flattenRoutes =
-        concatMap $ \x ->
-            case x of
-                Nest _ xs -> xs
-                _         -> [x]
 
 convPiece :: PathPiece -> Piece String
 convPiece (Literal str)         = Static str
