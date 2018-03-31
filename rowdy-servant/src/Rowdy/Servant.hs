@@ -25,14 +25,15 @@ import           Rowdy
 type Dsl = RouteDsl PathPiece (Route SomeType)
 
 toServant :: String -> Dsl () -> Q [Dec]
-toServant apiName = renderRoutes . concatMap toList . toList . runRouteDsl
+toServant apiName = renderRoutes . runRouteDsl
   where
     renderRoutes =
         fmap pure
             . tySynD (mkName apiName) []
             . pure
             . foldr1 (\x acc -> ConT ''(:<|>) `AppT` x `AppT` acc)
-            . map routeToType
+            . map (uncurry routeToType)
+            . concatMap unnest
 
     routeToType pcs (Route (MkResource verb (SomeType prxy))) =
         let pcs' = map pieceToType pcs
@@ -89,7 +90,7 @@ post = doVerb Post
 delete = doVerb Delete
 
 doVerb :: RVerb -> SomeType -> Dsl ()
-doVerb verb r = terminal (Route pcs (MkResource verb r))
+doVerb verb r = terminal (Route (MkResource verb r))
 
 capture :: forall typ. Typeable typ => PathPiece
 capture = Capture (SomeType (Proxy @typ))

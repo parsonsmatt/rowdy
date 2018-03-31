@@ -1,17 +1,17 @@
 name:                examples
 version:             0.1.0.0
-github:              "parsonsmatt/examples"
+github:              parsonsmatt/rowdy
 license:             BSD3
-author:              "Matt Parsons"
-maintainer:          "parsonsmatt@gmail.com"
-copyright:           "Matt Parsons"
+author:              Matt Parsons
+maintainer:          parsonsmatt@gmail.com
+copyright:           2018 Matt Parsons
 
 extra-source-files:
 - README.md
 - ChangeLog.md
 
 # Metadata used when publishing your package
-synopsis:            Short description of your package
+synopsis:            Examples of the Rowdy DSL
 category:            Web
 
 # To avoid duplicated efforts in documentation and dealing with the
@@ -22,7 +22,7 @@ description:         Please see the README on Github at <https://github.com/pars
 dependencies:
 - base >= 4.7 && < 5
 - rowdy
-  # - rowdy-servant
+- rowdy-servant
 - rowdy-yesod
 - servant-server
 - text

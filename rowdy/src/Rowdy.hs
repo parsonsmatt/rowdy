@@ -51,3 +51,10 @@ terminal :: endpoint -> RouteDsl capture endpoint ()
 terminal = tell . pure . Leaf
 
 infixr 5 //
+
+unnest :: RouteTree capture terminal -> [([capture], terminal)]
+unnest = go mempty
+  where
+    go caps (Leaf terminal) = [(DList.toList caps, terminal)]
+    go caps (PathComponent cap next) = go (DList.snoc caps cap) next
+    go caps (Nest xs) = concatMap (go caps) xs
