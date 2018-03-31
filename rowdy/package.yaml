@@ -19,6 +19,8 @@ dependencies:
 - mtl
 - dlist
 - containers
+- free
+- comonad
 
 library:
   source-dirs: src

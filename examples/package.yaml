@@ -22,7 +22,7 @@ description:         Please see the README on Github at <https://github.com/pars
 dependencies:
 - base >= 4.7 && < 5
 - rowdy
-- rowdy-servant
+  # - rowdy-servant
 - rowdy-yesod
 - servant-server
 - text

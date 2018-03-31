@@ -1,68 +1,53 @@
-{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveFunctor        #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeApplications           #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 module Rowdy where
 
-import           Control.Monad.Reader
-import           Control.Monad.State   hiding (get, put)
-import qualified Control.Monad.State   as State
-import           Data.Char
-import           Data.DList            (DList (..))
-import qualified Data.DList            as DList
-import           Data.Proxy
-import           Data.String
-import           Data.Typeable
-import Data.Tree
+import Control.Monad.Writer
+import           Data.DList           (DList (..))
+import qualified Data.DList           as DList
 
-read :: MonadState s m => m s
-read = State.get
+type ForestOf f capture terminal = f (RouteTree capture terminal)
+type DForest c t = ForestOf DList c t
+type Forest c t = ForestOf [] c t
 
-write :: MonadState s m => s -> m ()
-write = State.put
+data RouteTree capture terminal
+    = Leaf terminal
+    | PathComponent capture (RouteTree capture terminal)
+    | Nest [RouteTree capture terminal]
+    deriving (Eq, Show, Functor, Foldable)
 
-type DForest a = DList (Tree a)
-
-newtype RouteDsl capture endpoint a = RouteDsl
-    { unRouteDsl :: ReaderT (DList capture) (State (DForest endpoint)) a
+newtype RouteDsl capture terminal a = RouteDsl
+    { unRouteDsl :: Writer (DForest capture terminal) a
     } deriving
     ( Functor, Applicative, Monad
-    , MonadReader (DList capture)
-    , MonadState (DForest endpoint)
+    , MonadWriter (DForest capture terminal)
     )
 
-runRouteDsl :: RouteDsl c e a -> Forest e
+runRouteDsl :: RouteDsl c e a -> Forest c e
 runRouteDsl =
-    DList.toList . flip execState mempty . flip runReaderT mempty . unRouteDsl
+    DList.toList . execWriter . unRouteDsl
 
 (//)
     :: capture
     -> RouteDsl capture endpoint ()
     -> RouteDsl capture endpoint ()
-pp // x = local (`DList.snoc` pp) x
+pp // x =
+    case runRouteDsl x of
+        [] -> error "what is wrong with you"
+        [a] -> tell (pure (PathComponent pp a))
+        xs -> tell (pure (PathComponent pp (Nest xs)))
 
-terminal :: ([capture] -> endpoint) -> RouteDsl capture endpoint ()
-terminal mkEndpoint = do
-    captures <- asks DList.toList
-    modify (`DList.snoc` Node (mkEndpoint captures) [])
+terminal :: endpoint -> RouteDsl capture endpoint ()
+terminal = tell . pure . Leaf
 
 infixr 5 //
-
--- data Type where
---     Type :: Typeable t => Proxy t -> Type
---
--- instance Show Type where
---     show (Type prxy) = show (typeRep prxy)
---
--- data Verb = Get | Put | Post | Delete
---     deriving Show
---
--- renderVerb :: Verb -> String
--- renderVerb = map toUpper . show

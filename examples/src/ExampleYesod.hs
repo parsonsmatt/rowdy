@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ViewPatterns          #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE TemplateHaskell       #-}
@@ -11,12 +11,22 @@ module ExampleYesod where
 import           Data.Text                (Text)
 import           Network.Wai.Handler.Warp (run)
 import           Yesod.Core               (RenderRoute (..), Yesod, mkYesod,
-                                           parseRoutes, toWaiApp)
+                                           toWaiApp)
 
 import           Rowdy.Yesod
 
 -- | This is my data type. There are many like it, but this one is mine.
 data Minimal = Minimal
+
+routes = do
+    get "RootR"
+    "users" // do
+        get "UserIndexR"
+        post "UserIndexR"
+        capture @Int // do
+            get "UserR"
+            put "UserR"
+
 
 mkYesod "Minimal" $ toYesod $ do
     get "RootR"
@@ -46,4 +56,3 @@ putUserR _ = pure ()
 
 main :: IO ()
 main = run 3000 =<< toWaiApp Minimal
-
