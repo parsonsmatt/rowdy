@@ -1,6 +1,7 @@
 # rowdy
 
 [![Build Status](https://travis-ci.org/parsonsmatt/rowdy.svg?branch=master)](https://travis-ci.org/parsonsmatt/rowdy)
+[![Coverage Status](https://coveralls.io/repos/github/parsonsmatt/rowdy/badge.svg?branch=master)](https://coveralls.io/github/parsonsmatt/rowdy?branch=master)
 
 `rowdy` is DSL for defining web application routes.
 

@@ -55,22 +55,6 @@ matrix:
     compiler: ": #stack default"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  #- env: BUILD=stack ARGS="--resolver lts-2"
-  #  compiler: ": #stack 7.8.4"
-  #  addons: {apt: {packages: [libgmp-dev]}}
-
-  #- env: BUILD=stack ARGS="--resolver lts-3"
-  #  compiler: ": #stack 7.10.2"
-  #  addons: {apt: {packages: [libgmp-dev]}}
-
-  #- env: BUILD=stack ARGS="--resolver lts-6"
-  #  compiler: ": #stack 7.10.3"
-  #  addons: {apt: {packages: [libgmp-dev]}}
-
-  #- env: BUILD=stack ARGS="--resolver lts-7"
-  #  compiler: ": #stack 8.0.1"
-  #  addons: {apt: {packages: [libgmp-dev]}}
-
   - env: BUILD=stack ARGS="--resolver lts-9"
     compiler: ": #stack 8.0.2"
     addons: {apt: {packages: [libgmp-dev]}}
@@ -116,6 +100,7 @@ before_install:
   then
     echo 'jobs: $ncpus' >> $HOME/.cabal/config
   fi
+- stack install hpc-coveralls
 
 install:
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
@@ -151,10 +136,14 @@ script:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
+      stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps --coverage
+      stack exec -- hpc-coveralls rowdy
+      if [[ -z $ARGS ]]; then
+        hpc-coveralls
+      fi
       ;;
     cabal)
-      cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
+      cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES --enable-coverage
 
       ORIGDIR=$(pwd)
       for dir in $PACKAGES
