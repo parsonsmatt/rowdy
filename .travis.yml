@@ -160,6 +160,8 @@ script:
       done
       ;;
 
-      hpc-coveralls dsl-specs servant-specs yesod-specs
+      if [[ $GHCVER == '8.4.1' ]]; then
+        hpc-coveralls dsl-specs servant-specs yesod-specs
+      fi
   esac
   set +ex
