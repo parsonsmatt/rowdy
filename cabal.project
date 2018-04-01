@@ -1,0 +1,5 @@
+packages:
+    rowdy
+    rowdy-yesod
+    rowdy-servant
+    examples
