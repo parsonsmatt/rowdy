@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs               #-}
+{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,9 +9,11 @@
 module Rowdy.Yesod
     ( module Rowdy.Yesod
     , (//)
+    , (/:)
     ) where
 
 import           Data.Char
+import           Data.Either
 import           Data.Foldable
 import           Data.Maybe            (isJust)
 import           Data.String
@@ -29,17 +32,19 @@ routeTreeToResourceTree =
     foldr (go []) []
   where
     go
-        :: [Piece String]
+        :: [Either String (Piece String)]
         -> RouteTree String PathPiece Endpoint
         -> [ResourceTree String]
         -> [ResourceTree String]
     go pcs (Nest str xs) acc =
-        ResourceParent str True (reverse pcs) (foldr (go []) [] xs)
-            : acc
+        ResourceParent str True pieces (foldr (go attrs) [] xs) : acc
+      where
+        pieces = rights (reverse pcs)
+        attrs = filter isLeft pcs
     go pcs (PathComponent pp rest) acc =
          go (convPiece pp : pcs) rest acc
     go pcs (Leaf term) (ResourceLeaf Resource {..} : acc)
-        | listEq eqPieceStr (reverse pcs) resourcePieces
+        | listEq eqPieceStr (rights (reverse pcs)) resourcePieces
         , Methods multi methods <- resourceDispatch
         =
         flip (:) acc . ResourceLeaf $
@@ -47,28 +52,28 @@ routeTreeToResourceTree =
                 MkResource v str ->
                     Resource
                         { resourceName = str
-                        , resourcePieces = reverse pcs
+                        , resourcePieces = rights (reverse pcs)
                         , resourceDispatch =
                             Methods
                                 { methodsMulti = multi
                                 , methodsMethods = renderVerb v : methods
                                 }
                         , resourceAttrs =
-                            []
+                            lefts pcs
                         , resourceCheck =
                             True
                         }
                 MkSubsite str typ func ->
                     Resource
                         { resourceName = str
-                        , resourcePieces = reverse pcs
+                        , resourcePieces = reverse (rights pcs)
                         , resourceDispatch =
                             Subsite
                                 { subsiteType = typ
                                 , subsiteFunc = func
                                 }
                         , resourceAttrs =
-                            []
+                            lefts pcs
                         , resourceCheck =
                             True
                         }
@@ -78,35 +83,37 @@ routeTreeToResourceTree =
                 MkResource v str ->
                     Resource
                         { resourceName = str
-                        , resourcePieces = reverse pcs
+                        , resourcePieces = reverse (rights pcs)
                         , resourceDispatch =
                             Methods
                                 { methodsMulti = Nothing
                                 , methodsMethods = [renderVerb v]
                                 }
                         , resourceAttrs =
-                            []
+                            lefts pcs
                         , resourceCheck =
                             True
                         }
                 MkSubsite str typ func ->
                     Resource
                         { resourceName = str
-                        , resourcePieces = reverse pcs
+                        , resourcePieces = reverse (rights pcs)
                         , resourceDispatch =
                             Subsite
                                 { subsiteType = typ
                                 , subsiteFunc = func
                                 }
                         , resourceAttrs =
-                            []
+                            lefts pcs
                         , resourceCheck =
                             True
                         }
 
-convPiece :: PathPiece -> Piece String
-convPiece (Literal str)         = Static str
-convPiece (Capture (Type prxy)) = Dynamic (show (typeRep prxy))
+convPiece :: PathPiece -> Either String (Piece String)
+convPiece = \case
+    Literal str -> Right (Static str)
+    Capture (Type prxy) -> Right (Dynamic (show (typeRep prxy)))
+    Attr attr -> Left attr
 
 listEq :: (a -> a -> Bool) -> [a] -> [a] -> Bool
 listEq f (x:xs) (y:ys) = f x y && listEq f xs ys
@@ -126,6 +133,7 @@ data Endpoint
 data PathPiece
     = Literal String
     | Capture Type
+    | Attr String
     deriving (Eq, Show)
 
 instance IsString PathPiece where
@@ -167,6 +175,19 @@ capture =
 
 resource :: String -> [String -> Dsl ()] -> Dsl ()
 resource = traverse_ . flip id
+
+attr :: String -> Dsl () -> Dsl ()
+attr = pathComponent . Attr
+
+(/!) :: String -> Dsl () -> Dsl ()
+(/!) = attr
+
+infixr 8 /!
+
+(!) :: Dsl () -> String -> Dsl ()
+(!) = flip attr
+
+infixl 8 !
 
 upperFirst :: String -> String
 upperFirst (x:xs) = toUpper x : xs
