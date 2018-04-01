@@ -19,9 +19,12 @@ dependencies:
 - mtl
 - dlist
 - containers
+- free
+- comonad
 
 library:
   source-dirs: src
+  ghc-options: -Wall -Wcompat
 
 tests:
   dsl-specs:
