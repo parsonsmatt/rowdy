@@ -18,7 +18,7 @@ Since it isn't Haskell, you don't get good error messages, syntax highlighting,
 or the ability to define your own combinators.
 
 `rowdy` is a value level DSL for defining routes. A Template Haskell splice can
-then interpret the value at compile-time and provide a Yesod represntation, or a
+then interpret the value at compile-time and provide a Yesod representation, or a
 Servant representation, or whatever else you'd like!
 
 ## Future plans
