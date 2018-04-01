@@ -1,17 +1,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE QuasiQuotes           #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE ViewPatterns          #-}
 
 module ExampleYesod where
 
 import           Data.Text                (Text)
 import           Network.Wai.Handler.Warp (run)
 import           Yesod.Core               (RenderRoute (..), Yesod, mkYesod,
-                                           parseRoutes, toWaiApp)
+                                           toWaiApp)
 
 import           Rowdy.Yesod
 
@@ -21,11 +21,8 @@ data Minimal = Minimal
 mkYesod "Minimal" $ toYesod $ do
     get "RootR"
     "users" // do
-        get "UserIndexR"
-        post "UserIndexR"
-        capture @Int // do
-            get "UserR"
-            put "UserR"
+        resource "UserIndexR" [get, post]
+        capture @Int // resource "UserR" [get, put]
 
 instance Yesod Minimal
 
@@ -46,4 +43,3 @@ putUserR _ = pure ()
 
 main :: IO ()
 main = run 3000 =<< toWaiApp Minimal
-

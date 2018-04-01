@@ -11,32 +11,30 @@
 
 module Rowdy.Servant
     ( module Rowdy.Servant
-    , get, put, post, capture, (//), SomeType(..)
+    , (//), SomeType(..)
     ) where
 
-import           Data.Foldable            (toList)
 import           Data.String
 import           Data.Typeable
-import           Language.Haskell.TH      as TH
-import           Servant.API              as Servant
-import           Servant.API.Capture      as Servant
-import           Servant.API.ContentTypes as Servant
+import           Language.Haskell.TH as TH
+import           Servant.API         as Servant
 
 import           Rowdy
 
-type Dsl = RouteDsl PathPiece (Route SomeType)
+type Dsl = RouteDsl () PathPiece (Route SomeType)
 
 toServant :: String -> Dsl () -> Q [Dec]
-toServant apiName = renderRoutes . concatMap toList . toList . runRouteDsl
+toServant apiName = renderRoutes . runRouteDsl
   where
     renderRoutes =
         fmap pure
             . tySynD (mkName apiName) []
             . pure
             . foldr1 (\x acc -> ConT ''(:<|>) `AppT` x `AppT` acc)
-            . map routeToType
+            . map (uncurry routeToType)
+            . concatMap unnest
 
-    routeToType (Route pcs (MkResource verb (SomeType prxy))) =
+    routeToType pcs (Route (MkResource verb (SomeType prxy))) =
         let pcs' = map pieceToType pcs
             end = verbToVerb verb
                 `AppT` json
@@ -52,7 +50,7 @@ toServant apiName = renderRoutes . concatMap toList . toList . runRouteDsl
         Get -> ''Servant.Get
         Put ->  ''Servant.Put
         Post -> ''Servant.Post
-        Put ->  ''Servant.Put
+        Delete ->  ''Servant.Delete
 
     pieceToType (Literal str) =
         LitT (StrTyLit str)
@@ -61,7 +59,7 @@ toServant apiName = renderRoutes . concatMap toList . toList . runRouteDsl
             `AppT` (LitT . StrTyLit . show $ typeRep prxy)
             `AppT` (ConT . mkName . show $ typeRep prxy)
 
-data Route a = Route [PathPiece] (Endpoint a)
+newtype Route a = Route (Endpoint a)
 
 data Endpoint a
     = MkResource RVerb a
@@ -91,8 +89,7 @@ post = doVerb Post
 delete = doVerb Delete
 
 doVerb :: RVerb -> SomeType -> Dsl ()
-doVerb verb r = terminal (\pcs -> Route pcs (MkResource verb r))
+doVerb verb r = terminal (Route (MkResource verb r))
 
 capture :: forall typ. Typeable typ => PathPiece
 capture = Capture (SomeType (Proxy @typ))
-
