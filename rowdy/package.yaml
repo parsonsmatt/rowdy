@@ -24,7 +24,7 @@ library:
   source-dirs: src
 
 tests:
-  specs:
+  dsl-specs:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
