@@ -165,6 +165,9 @@ capture :: forall typ. Typeable typ => PathPiece
 capture =
     Capture (Type (Proxy @typ))
 
+resource :: String -> [String -> Dsl ()] -> Dsl ()
+resource = traverse_ . flip id
+
 upperFirst :: String -> String
 upperFirst (x:xs) = toUpper x : xs
 upperFirst []     = []

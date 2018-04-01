@@ -21,11 +21,8 @@ data Minimal = Minimal
 mkYesod "Minimal" $ toYesod $ do
     get "RootR"
     "users" // do
-        get "UserIndexR"
-        post "UserIndexR"
-        capture @Int // do
-            get "UserR"
-            put "UserR"
+        resource "UserIndexR" [get, post]
+        capture @Int // resource "UserR" [get, put]
 
 instance Yesod Minimal
 
