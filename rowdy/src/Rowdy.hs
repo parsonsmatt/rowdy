@@ -35,12 +35,15 @@ runRouteDsl :: RouteDsl n c e a -> Forest n c e
 runRouteDsl =
     DList.toList . execWriter . unRouteDsl
 
+runRouteDsl' :: RouteDsl n c e a -> DForest n c e
+runRouteDsl' = execWriter . unRouteDsl
+
 pathComponent
     :: capture
     -> RouteDsl nest capture endpoint ()
     -> RouteDsl nest capture endpoint ()
 pathComponent pp =
-    tell . DList.fromList . map (PathComponent pp) . runRouteDsl
+    tell . fmap (PathComponent pp) . runRouteDsl'
 
 (//)
     :: capture

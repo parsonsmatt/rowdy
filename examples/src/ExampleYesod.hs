@@ -23,6 +23,12 @@ mkYesod "Minimal" $ toYesod $ do
     "users" // do
         resource "UserIndexR" [get, post]
         capture @Int // resource "UserR" [get, put]
+    "admin" // "Admin" /: do
+        get "PanelR" ! "admin" ! "cool"
+        post "PanelR" ! "admin"
+    "other-attr" // "safe" /! do
+        get "SafeR"
+        put "SafeR"
 
 instance Yesod Minimal
 
@@ -40,6 +46,18 @@ getUserR _ = pure ()
 
 putUserR :: Int -> Handler ()
 putUserR _ = pure ()
+
+getPanelR :: Handler ()
+getPanelR = pure ()
+
+postPanelR :: Handler ()
+postPanelR = pure ()
+
+getSafeR :: Handler ()
+getSafeR = pure ()
+
+putSafeR :: Handler ()
+putSafeR = pure ()
 
 main :: IO ()
 main = run 3000 =<< toWaiApp Minimal
