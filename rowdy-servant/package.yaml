@@ -25,7 +25,7 @@ library:
   ghc-options: -Wall -Wcompat
 
 tests:
-  servant-specs:
+  rowdy-servant-specs:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

@@ -157,10 +157,10 @@ script:
         cabal build
         cabal test
         cd $ORIGDIR
+        if [ $GHCVER == '8.4.1' ]; then
+          hpc-coveralls $dir-specs
+        fi
       done
-      if [ $GHCVER == '8.4.1' ]; then
-        hpc-coveralls dsl-specs servant-specs yesod-specs
-      fi
       ;;
   esac
   set +ex

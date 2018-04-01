@@ -27,7 +27,7 @@ library:
   ghc-options: -Wall -Wcompat
 
 tests:
-  dsl-specs:
+  rowdy-specs:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

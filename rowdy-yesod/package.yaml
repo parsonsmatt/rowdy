@@ -24,7 +24,7 @@ library:
   ghc-options: -Wall -Wcompat
 
 tests:
-  yesod-specs:
+  rowdy-yesod-specs:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
