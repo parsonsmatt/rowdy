@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1b45fa00ea3edf0b9b04f20c9f04c7b136a0d6fd0bd68602608e60396b3f38aa
+-- hash: 9d563ed5769651d2cdd6c0ad047d961c424e9a91a4826688362cb02679399f62
 
 name:           rowdy-yesod
 version:        0.0.1.0
@@ -37,6 +37,7 @@ library
     , yesod-core
   exposed-modules:
       Rowdy.Yesod
+      Rowdy.Yesod.Internal
   other-modules:
       Paths_rowdy_yesod
   default-language: Haskell2010
