@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/parsonsmatt/rowdy.svg?branch=master)](https://travis-ci.org/parsonsmatt/rowdy)
 
-`rowdy` is DSL for defining web application routes. Check out the examples!
+`rowdy` is DSL for defining web application routes. Check out [the examples](examples/)!
 
 ## Why?
 
