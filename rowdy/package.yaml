@@ -19,12 +19,11 @@ dependencies:
 - mtl
 - dlist
 - containers
-- free
-- comonad
 
 library:
   source-dirs: src
   ghc-options: -Wall -Wcompat
+  other-modules: Paths_rowdy
 
 tests:
   specs:

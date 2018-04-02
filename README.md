@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/parsonsmatt/rowdy.svg?branch=master)](https://travis-ci.org/parsonsmatt/rowdy)
 
-`rowdy` is DSL for defining web application routes.
+`rowdy` is DSL for defining web application routes. Check out the examples!
 
 ## Why?
 
@@ -23,8 +23,6 @@ Servant representation, or whatever else you'd like!
 
 ## Future plans
 
-Currently, `rowdy` intends to support Yesod-style routes concretely and
-completley. It will be made extensible so that Servant-style routes may be
-generated as well, likely in an initially concrete manner (probably just
-straight up code duplication). Once support for both platforms is complete, an
-abstraction will be picked that will unify the two syntaxes.
+Currently, `rowdy` supports Yesod-style routes concretely and completely. The
+Servant support is limited and not ready for publish yet -- if you have ideas
+for providing an extensible design for this, please let me know!
