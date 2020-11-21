@@ -1,3 +1,6 @@
-# Changelog for rowdy
+# Changelog for rowdy-yesod
 
-## Unreleased changes
+## 0.0.1.1
+
+- Fixed a bug where path components were being merged, resulting in dropped
+  routes.

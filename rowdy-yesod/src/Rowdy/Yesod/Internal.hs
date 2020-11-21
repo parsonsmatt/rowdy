@@ -80,6 +80,8 @@ routeTreeToResourceTree =
     go pcs (Leaf term) (ResourceLeaf Resource {..} : acc)
         | listEq eqPieceStr (rights (reverse pcs)) resourcePieces
         , Methods multi methods <- resourceDispatch
+        , MkResource _ endpointName <- term
+        , resourceName == endpointName
         =
         flip (:) acc . ResourceLeaf $
             case term of
